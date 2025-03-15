@@ -14,6 +14,7 @@ import java.util.Comparator;
 import java.text.SimpleDateFormat;
 import java.util.Locale;
 import java.util.Date;
+import java.lang.reflect.Method;
 
 public class DatabaseTablePanel<T extends BaseModel<T>> extends JPanel {
     private final Connection connection;
@@ -180,7 +181,7 @@ public class DatabaseTablePanel<T extends BaseModel<T>> extends JPanel {
         }
     }
 
-    private void refreshTable() {
+    public void refreshTable() {
         try {
             List<T> entities = entity.selectAll(connection);
             updateTableModel(entities);
@@ -287,8 +288,20 @@ public class DatabaseTablePanel<T extends BaseModel<T>> extends JPanel {
                         e.printStackTrace();
                     }
                 } else {
-                    entity.getClass().getMethod("set" + capitalize(fieldName), value.getClass())
-                        .invoke(entity, value);
+                    if (value != null) {
+                        entity.getClass().getMethod("set" + capitalize(fieldName), value.getClass())
+                            .invoke(entity, value);
+                    } else {
+                        // Handle null values - find the appropriate setter method and invoke it with null
+                        for (Method method : entity.getClass().getMethods()) {
+                            if (method.getName().equals("set" + capitalize(fieldName)) 
+                                && method.getParameterCount() == 1 
+                                && !method.getParameterTypes()[0].isPrimitive()) {
+                                method.invoke(entity, (Object) null);
+                                break;
+                            }
+                        }
+                    }
                 }
             } catch (Exception e) {
                 e.printStackTrace();

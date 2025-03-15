@@ -95,11 +95,40 @@ public class DatabaseConfig {
     /**
      * Creates and returns a new database connection using the configured settings.
      * This method should be used for all database operations in the application.
+     * If the database doesn't exist, it will be created.
      * 
      * @return A new Connection object to the database
      * @throws SQLException if a database access error occurs or the URL is null
      */
     public static Connection getConnection() throws SQLException {
-        return DriverManager.getConnection(getUrl(), getProperties());
+        try {
+            // Try to connect directly to the database
+            return DriverManager.getConnection(getUrl(), getProperties());
+        } catch (SQLException e) {
+            // If the database doesn't exist (error code 1049), create it
+            if (e.getErrorCode() == 1049) {
+                createDatabase();
+                return DriverManager.getConnection(getUrl(), getProperties());
+            } else {
+                // For any other error, throw the exception
+                throw e;
+            }
+        }
+    }
+    
+    /**
+     * Creates the database if it doesn't exist.
+     * 
+     * @throws SQLException if a database access error occurs
+     */
+    private static void createDatabase() throws SQLException {
+        // Connect to MySQL/MariaDB without specifying the database
+        try (Connection conn = DriverManager.getConnection(getUrlWithoutDatabase(), getProperties());
+             java.sql.Statement stmt = conn.createStatement()) {
+            
+            // Create the database
+            stmt.executeUpdate("CREATE DATABASE IF NOT EXISTS " + DATABASE);
+            System.out.println("Database '" + DATABASE + "' created successfully");
+        }
     }
 } 

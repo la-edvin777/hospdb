@@ -3,6 +3,7 @@ package gui;
 import models.*;
 import utils.DatabaseConfig;
 import utils.CSVLoader;
+import utils.DatabaseInitializer;
 
 import javax.swing.*;
 import java.awt.*;
@@ -19,24 +20,45 @@ public class HospitalManagementGUI extends JFrame {
 
     public HospitalManagementGUI() throws SQLException {
         super("Hospital Management System");
-        connection = DatabaseConfig.getConnection();
-        csvLoader = new CSVLoader(connection);
         
-        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        setSize(800, 600);
-        
-        tabbedPane = new JTabbedPane();
-        add(tabbedPane);
-        
-        setupDatabase();
-        setupTabs();
-        
-        setLocationRelativeTo(null);
-        setVisible(true);
+        try {
+            // Get connection (this will create the database if it doesn't exist)
+            connection = DatabaseConfig.getConnection();
+            
+            // Initialize database schema
+            DatabaseInitializer.initializeDatabase(connection);
+            
+            // Initialize CSV loader
+            csvLoader = new CSVLoader(connection);
+            
+            setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+            setSize(800, 600);
+            
+            // Create menu bar
+            setupMenuBar();
+            
+            tabbedPane = new JTabbedPane();
+            add(tabbedPane);
+            
+            // Load initial data
+            setupDatabase();
+            setupTabs();
+            
+            setLocationRelativeTo(null);
+            setVisible(true);
+        } catch (SQLException e) {
+            e.printStackTrace();
+            JOptionPane.showMessageDialog(null,
+                "Error initializing application: " + e.getMessage(),
+                "Database Error",
+                JOptionPane.ERROR_MESSAGE);
+            throw e;  // Re-throw to allow main method to handle it
+        }
     }
     
     private void setupDatabase() {
         try {
+            // Load data from CSV files
             csvLoader.loadAllData();
         } catch (SQLException e) {
             e.printStackTrace();
@@ -171,6 +193,59 @@ public class HospitalManagementGUI extends JFrame {
         );
         
         tabbedPane.addTab("Patient Insurance", panel);
+    }
+    
+    private void setupMenuBar() {
+        JMenuBar menuBar = new JMenuBar();
+        
+        // Database menu
+        JMenu databaseMenu = new JMenu("Database");
+        JMenuItem reinitItem = new JMenuItem("Reinitialize Database");
+        reinitItem.addActionListener(e -> {
+            int confirm = JOptionPane.showConfirmDialog(
+                this,
+                "This will reset the database and delete all data. Are you sure?",
+                "Confirm Database Reset",
+                JOptionPane.YES_NO_OPTION,
+                JOptionPane.WARNING_MESSAGE
+            );
+            
+            if (confirm == JOptionPane.YES_OPTION) {
+                try {
+                    DatabaseInitializer.initializeDatabase(connection);
+                    csvLoader.loadAllData();
+                    refreshAllTabs();
+                    JOptionPane.showMessageDialog(
+                        this,
+                        "Database reinitialized successfully with updated schema.",
+                        "Database Reset",
+                        JOptionPane.INFORMATION_MESSAGE
+                    );
+                } catch (SQLException ex) {
+                    ex.printStackTrace();
+                    JOptionPane.showMessageDialog(
+                        this,
+                        "Error reinitializing database: " + ex.getMessage(),
+                        "Database Error",
+                        JOptionPane.ERROR_MESSAGE
+                    );
+                }
+            }
+        });
+        
+        databaseMenu.add(reinitItem);
+        menuBar.add(databaseMenu);
+        
+        setJMenuBar(menuBar);
+    }
+    
+    private void refreshAllTabs() {
+        for (int i = 0; i < tabbedPane.getTabCount(); i++) {
+            Component comp = tabbedPane.getComponentAt(i);
+            if (comp instanceof DatabaseTablePanel) {
+                ((DatabaseTablePanel<?>) comp).refreshTable();
+            }
+        }
     }
     
     public static void main(String[] args) {

@@ -55,8 +55,11 @@ public class DatabaseInitializer {
             // Create Doctor table - Primary entity for medical staff
             stmt.execute("CREATE TABLE doctor (" +
                     "doctorid VARCHAR(8) PRIMARY KEY," +
-                    "name VARCHAR(100) NOT NULL," +
-                    "specialty VARCHAR(50) NOT NULL" +
+                    "firstname VARCHAR(50) NOT NULL," +
+                    "surname VARCHAR(50) NOT NULL," +
+                    "address VARCHAR(200) NOT NULL," +
+                    "email VARCHAR(100) NOT NULL," +
+                    "specialization VARCHAR(50) NOT NULL" +
                     ")");
 
             // Create DoctorSpecialty table - Stores doctor specializations
@@ -65,6 +68,8 @@ public class DatabaseInitializer {
                     "specialty VARCHAR(50) NOT NULL," +
                     "experience INT NOT NULL," +
                     "FOREIGN KEY (doctorid) REFERENCES doctor(doctorid)" +
+                    " ON DELETE CASCADE" +
+                    " ON UPDATE CASCADE" +
                     ")");
 
             // Create Patient table - Primary entity for patients
@@ -84,10 +89,15 @@ public class DatabaseInitializer {
                     "visitid VARCHAR(8) PRIMARY KEY," +
                     "patientid VARCHAR(8) NOT NULL," +
                     "doctorid VARCHAR(8) NOT NULL," +
-                    "visitdate DATE NOT NULL," +
+                    "dateofvisit DATE NOT NULL," +
+                    "symptoms VARCHAR(200)," +
                     "diagnosis VARCHAR(100) NOT NULL," +
-                    "FOREIGN KEY (patientid) REFERENCES patient(patientid)," +
+                    "FOREIGN KEY (patientid) REFERENCES patient(patientid)" +
+                    " ON DELETE CASCADE" +
+                    " ON UPDATE CASCADE," +
                     "FOREIGN KEY (doctorid) REFERENCES doctor(doctorid)" +
+                    " ON DELETE CASCADE" +
+                    " ON UPDATE CASCADE" +
                     ")");
 
             // Create Prescription table - Records medications prescribed during visits
@@ -100,8 +110,12 @@ public class DatabaseInitializer {
                     "drugid INT NOT NULL," +
                     "doctorid VARCHAR(8) NOT NULL," +
                     "patientid VARCHAR(8) NOT NULL," +
-                    "FOREIGN KEY (doctorid) REFERENCES doctor(doctorid)," +
+                    "FOREIGN KEY (doctorid) REFERENCES doctor(doctorid)" +
+                    " ON DELETE CASCADE" +
+                    " ON UPDATE CASCADE," +
                     "FOREIGN KEY (patientid) REFERENCES patient(patientid)" +
+                    " ON DELETE CASCADE" +
+                    " ON UPDATE CASCADE" +
                     ")");
 
             // Create PatientInsurance table - Links patients with their insurance records
@@ -112,6 +126,8 @@ public class DatabaseInitializer {
                     "enddate DATE NOT NULL," +
                     "PRIMARY KEY (insuranceid, patientid)," +
                     "FOREIGN KEY (patientid) REFERENCES patient(patientid)" +
+                    " ON DELETE CASCADE" +
+                    " ON UPDATE CASCADE" +
                     ")");
         }
     }

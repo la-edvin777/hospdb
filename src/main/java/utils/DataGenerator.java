@@ -56,12 +56,17 @@ public class DataGenerator {
     }
 
     private static void generateDoctors(Connection conn) throws SQLException {
-        String sql = "INSERT INTO doctor (doctorid, name, specialty) VALUES (?, ?, ?)";
+        String sql = "INSERT INTO doctor (doctorid, firstname, surname, address, email, specialization) VALUES (?, ?, ?, ?, ?, ?)";
         try (PreparedStatement stmt = conn.prepareStatement(sql)) {
             for (int i = 0; i < 10; i++) {
+                String firstName = FIRST_NAMES[i];
+                String lastName = LAST_NAMES[i];
                 stmt.setString(1, generateId());
-                stmt.setString(2, FIRST_NAMES[i] + " " + LAST_NAMES[i]);
-                stmt.setString(3, SPECIALTIES[i]);
+                stmt.setString(2, firstName);
+                stmt.setString(3, lastName);
+                stmt.setString(4, ADDRESSES[random.nextInt(ADDRESSES.length)]);
+                stmt.setString(5, firstName.toLowerCase() + "." + lastName.toLowerCase() + "@hospital.com");
+                stmt.setString(6, SPECIALTIES[i]);
                 stmt.executeUpdate();
             }
         }
@@ -125,14 +130,15 @@ public class DataGenerator {
             doctorIds[i++] = rs2.getString("doctorid");
         }
 
-        String sql = "INSERT INTO visit (visitid, patientid, doctorid, visitdate, diagnosis) VALUES (?, ?, ?, ?, ?)";
+        String sql = "INSERT INTO visit (visitid, patientid, doctorid, dateofvisit, symptoms, diagnosis) VALUES (?, ?, ?, ?, ?, ?)";
         try (PreparedStatement stmt = conn.prepareStatement(sql)) {
             for (int j = 0; j < 30; j++) { // Generate 30 visits
                 stmt.setString(1, generateId());
                 stmt.setString(2, patientIds[random.nextInt(patientIds.length)]);
                 stmt.setString(3, doctorIds[random.nextInt(doctorIds.length)]);
                 stmt.setDate(4, Date.valueOf(LocalDate.now().minusDays(random.nextInt(365)))); // Last year
-                stmt.setString(5, DIAGNOSES[random.nextInt(DIAGNOSES.length)]);
+                stmt.setString(5, "Patient reported " + DIAGNOSES[random.nextInt(DIAGNOSES.length)].toLowerCase() + " symptoms");
+                stmt.setString(6, DIAGNOSES[random.nextInt(DIAGNOSES.length)]);
                 stmt.executeUpdate();
             }
         }
@@ -183,18 +189,16 @@ public class DataGenerator {
             patientIds[i++] = rs.getString("patientid");
         }
 
-        String sql = "INSERT INTO patientinsurance (insuranceid, patientid, insuranceprovider, policynumber, expirydate) VALUES (?, ?, ?, ?, ?)";
+        String sql = "INSERT INTO patientinsurance (insuranceid, patientid, startdate, enddate) VALUES (?, ?, ?, ?)";
         try (PreparedStatement stmt = conn.prepareStatement(sql)) {
             for (String patientId : patientIds) {
                 String insuranceId = generateId();
                 stmt.setString(1, insuranceId);
                 stmt.setString(2, patientId);
-                stmt.setString(3, INSURANCE_PROVIDERS[random.nextInt(INSURANCE_PROVIDERS.length)]);
-                stmt.setString(4, "POL-" + (100000 + random.nextInt(900000))); // 6-digit policy number
-                stmt.setDate(5, Date.valueOf(LocalDate.now().plusYears(1))); // Expires in 1 year
+                stmt.setDate(3, Date.valueOf(LocalDate.now()));
+                stmt.setDate(4, Date.valueOf(LocalDate.now().plusYears(1)));
                 stmt.executeUpdate();
                 
-                // Update the patient's insuranceid
                 try (PreparedStatement updateStmt = conn.prepareStatement("UPDATE patient SET insuranceid = ? WHERE patientid = ?")) {
                     updateStmt.setString(1, insuranceId);
                     updateStmt.setString(2, patientId);
