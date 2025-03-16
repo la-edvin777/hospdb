@@ -58,14 +58,28 @@ public class HospitalManagementGUI extends JFrame {
     
     private void setupDatabase() {
         try {
-            // Load data from CSV files
+            // First try using LOAD DATA LOCAL INFILE (faster but requires server configuration)
             csvLoader.loadAllData();
         } catch (SQLException e) {
-            e.printStackTrace();
-            JOptionPane.showMessageDialog(this, 
-                "Error loading data: " + e.getMessage(),
-                "Database Error",
-                JOptionPane.ERROR_MESSAGE);
+            // If it fails with "Loading local data is disabled", try the alternative method
+            if (e.getMessage().contains("Loading local data is disabled")) {
+                try {
+                    System.out.println("Retrying data load using INSERT statements instead of LOAD DATA LOCAL INFILE...");
+                    csvLoader.loadAllDataWithInsert();
+                } catch (SQLException e2) {
+                    e2.printStackTrace();
+                    JOptionPane.showMessageDialog(this, 
+                        "Error loading data: " + e2.getMessage(),
+                        "Database Error",
+                        JOptionPane.ERROR_MESSAGE);
+                }
+            } else {
+                e.printStackTrace();
+                JOptionPane.showMessageDialog(this, 
+                    "Error loading data: " + e.getMessage(),
+                    "Database Error",
+                    JOptionPane.ERROR_MESSAGE);
+            }
         }
     }
     
@@ -213,7 +227,20 @@ public class HospitalManagementGUI extends JFrame {
             if (confirm == JOptionPane.YES_OPTION) {
                 try {
                     DatabaseInitializer.initializeDatabase(connection);
-                    csvLoader.loadAllData();
+                    
+                    // Try original method first
+                    try {
+                        csvLoader.loadAllData();
+                    } catch (SQLException ex) {
+                        // If it fails with "Loading local data is disabled", try the alternative method
+                        if (ex.getMessage().contains("Loading local data is disabled")) {
+                            System.out.println("Retrying data load using INSERT statements instead of LOAD DATA LOCAL INFILE...");
+                            csvLoader.loadAllDataWithInsert();
+                        } else {
+                            throw ex;
+                        }
+                    }
+                    
                     refreshAllTabs();
                     JOptionPane.showMessageDialog(
                         this,

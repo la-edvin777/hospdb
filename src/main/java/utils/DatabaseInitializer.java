@@ -40,6 +40,8 @@ public class DatabaseInitializer {
             stmt.execute("DROP TABLE IF EXISTS patient");
             stmt.execute("DROP TABLE IF EXISTS doctorspecialty");
             stmt.execute("DROP TABLE IF EXISTS doctor");
+            stmt.execute("DROP TABLE IF EXISTS insurance");
+            stmt.execute("DROP TABLE IF EXISTS drug");
         }
     }
 
@@ -72,6 +74,22 @@ public class DatabaseInitializer {
                     " ON UPDATE CASCADE" +
                     ")");
 
+            // Create Insurance table - Insurance provider information
+            stmt.execute("CREATE TABLE insurance (" +
+                    "insuranceid VARCHAR(8) PRIMARY KEY," +
+                    "company VARCHAR(100) NOT NULL," +
+                    "address VARCHAR(200) NOT NULL," +
+                    "phone VARCHAR(20) NOT NULL" +
+                    ")");
+
+            // Create Drug table - Medication information
+            stmt.execute("CREATE TABLE drug (" +
+                    "drugid INT PRIMARY KEY," +
+                    "name VARCHAR(100) NOT NULL," +
+                    "sideeffects VARCHAR(200)," +
+                    "benefits VARCHAR(200)" +
+                    ")");
+
             // Create Patient table - Primary entity for patients
             stmt.execute("CREATE TABLE patient (" +
                     "patientid VARCHAR(8) PRIMARY KEY," +
@@ -102,7 +120,7 @@ public class DatabaseInitializer {
 
             // Create Prescription table - Records medications prescribed during visits
             stmt.execute("CREATE TABLE prescription (" +
-                    "prescriptionid VARCHAR(8) PRIMARY KEY," +
+                    "prescriptionid VARCHAR(10) PRIMARY KEY," +
                     "dateprescribed DATE NOT NULL," +
                     "dosage VARCHAR(50) NOT NULL," +
                     "duration VARCHAR(50) NOT NULL," +

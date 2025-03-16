@@ -155,7 +155,7 @@ public class FieldMetadata {
             case "visit":
                 return "VT" + UUID.randomUUID().toString().substring(0, 6);
             case "prescription":
-                return "RX" + UUID.randomUUID().toString().substring(0, 6);
+                return String.format("%010d", (long)(Math.random() * 10000000000L));
             case "doctorspecialty":
                 return "DS" + UUID.randomUUID().toString().substring(0, 6);
             case "patientinsurance":
