@@ -1,3 +1,5 @@
 .vscode
 .idea
 utFile
+docs/*
+docs

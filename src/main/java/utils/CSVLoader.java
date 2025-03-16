@@ -298,7 +298,8 @@ public class CSVLoader {
             "Patient,patientID,firstname,surname,postcode,address,phone,email,insuranceID",
             "Drug,drugID,name,sideeffects,benefits",
             "Visit,patientID,doctorID,dateofvisit,symptoms,diagnosis",
-            "Prescription,prescriptionID,dateprescribed,dosage,duration,comment,drugID,doctorID,patientID"
+            "Prescription,prescriptionID,dateprescribed,dosage,duration,comment,drugID,doctorID,patientID",
+            "PatientInsurance,insuranceID,patientID,startdate,enddate"
         };
 
         // Process each table configuration
