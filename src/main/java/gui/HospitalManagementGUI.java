@@ -90,6 +90,7 @@ public class HospitalManagementGUI extends JFrame {
         setupPrescriptionPanel();
         setupDoctorSpecialtyPanel();
         setupPatientInsurancePanel();
+        setupInsurancePanel();
     }
     
     private void setupDoctorPanel() {
@@ -207,6 +208,24 @@ public class HospitalManagementGUI extends JFrame {
         );
         
         tabbedPane.addTab("Patient Insurance", panel);
+    }
+    
+    private void setupInsurancePanel() {
+        Map<String, FieldMetadata> fields = new HashMap<>();
+        fields.put("insuranceid", new FieldMetadata(String.class, true));
+        fields.put("company", new FieldMetadata(String.class, true));  // Company is required
+        fields.put("address", new FieldMetadata(String.class, true));  // Address is required
+        fields.put("phone", new FieldMetadata(String.class, true));    // Phone is required
+        
+        DatabaseTablePanel<Insurance> panel = new DatabaseTablePanel<>(
+            connection,
+            new Insurance(),
+            "insurance",
+            fields,
+            Insurance::new
+        );
+        
+        tabbedPane.addTab("Insurance", panel);
     }
     
     private void setupMenuBar() {
