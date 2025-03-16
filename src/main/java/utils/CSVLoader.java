@@ -56,18 +56,6 @@ public class CSVLoader {
      * @throws SQLException if there's an error loading the data
      */
     public void loadAllData() throws SQLException {
-        loadAllData(connection, dataDirectory);
-    }
-    
-    /**
-     * Static method to load all data from CSV files into the database.
-     * Processes each table's data with appropriate error handling.
-     * 
-     * @param conn The database connection
-     * @param dataDirectory The directory containing the CSV files
-     * @throws SQLException if there's an error loading the data
-     */
-    public static void loadAllData(Connection conn, String dataDirectory) throws SQLException {
         // Configuration for each table's CSV structure
         String[] tableConfigs = {
             "Doctor,doctorID,firstname,surname,address,email,specialization",
@@ -85,16 +73,16 @@ public class CSVLoader {
             String columns = parts[1];
             
             try {
-                loadTable(conn, dataDirectory + "/" + tableName + ".csv", tableName,
+                loadTableWithInsert(connection, dataDirectory + "/" + tableName + ".csv", tableName.toLowerCase(),
                     "(" + String.join(",", columns.split(",")) + ")");
-                System.out.println("Successfully loaded " + tableName + " data");
+                System.out.println("Successfully loaded " + tableName + " data using INSERT");
             } catch (SQLException e) {
                 System.err.println("Error loading " + tableName + " data: " + e.getMessage());
                 throw e; // Re-throw to handle in the GUI
             }
         }
     }
-
+    
     /**
      * Loads data from a single CSV file into the specified table.
      * Performs file existence and permission checks before loading.

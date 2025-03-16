@@ -4,6 +4,7 @@ import java.sql.*;
 import java.text.SimpleDateFormat;
 
 public class Visit extends BaseModel<Visit> {
+    private String visitid;
     private String patientid;
     private String doctorid;
     private Date dateofvisit;
@@ -20,6 +21,7 @@ public class Visit extends BaseModel<Visit> {
     @Override
     protected Visit mapResultSetToEntity(ResultSet rs) throws SQLException {
         Visit visit = new Visit();
+        visit.visitid = rs.getString("visitid");
         visit.patientid = rs.getString("patientid");
         visit.doctorid = rs.getString("doctorid");
         visit.dateofvisit = rs.getDate("dateofvisit");
@@ -30,35 +32,37 @@ public class Visit extends BaseModel<Visit> {
 
     @Override
     protected void setCreateStatement(PreparedStatement stmt, Visit visit) throws SQLException {
+        stmt.setString(1, visit.visitid);
+        stmt.setString(2, visit.patientid);
+        stmt.setString(3, visit.doctorid);
+        stmt.setDate(4, visit.dateofvisit);
+        stmt.setString(5, visit.symptoms);
+        stmt.setString(6, visit.diagnosis);
+    }
+
+    @Override
+    protected void setUpdateStatement(PreparedStatement stmt, Visit visit) throws SQLException {
         stmt.setString(1, visit.patientid);
         stmt.setString(2, visit.doctorid);
         stmt.setDate(3, visit.dateofvisit);
         stmt.setString(4, visit.symptoms);
         stmt.setString(5, visit.diagnosis);
-    }
-
-    @Override
-    protected void setUpdateStatement(PreparedStatement stmt, Visit visit) throws SQLException {
-        stmt.setString(1, visit.doctorid);
-        stmt.setDate(2, visit.dateofvisit);
-        stmt.setString(3, visit.symptoms);
-        stmt.setString(4, visit.diagnosis);
-        stmt.setString(5, visit.patientid);
+        stmt.setString(6, visit.visitid);
     }
 
     @Override
     protected String getCreateSQL() {
-        return "INSERT INTO Visit (patientid, doctorid, dateofvisit, symptoms, diagnosis) VALUES (?, ?, ?, ?, ?)";
+        return "INSERT INTO Visit (visitid, patientid, doctorid, dateofvisit, symptoms, diagnosis) VALUES (?, ?, ?, ?, ?, ?)";
     }
 
     @Override
     protected String getUpdateSQL() {
-        return "UPDATE Visit SET doctorid=?, dateofvisit=?, symptoms=?, diagnosis=? WHERE patientid=?";
+        return "UPDATE Visit SET patientid=?, doctorid=?, dateofvisit=?, symptoms=?, diagnosis=? WHERE visitid=?";
     }
 
     @Override
     protected String getDeleteSQL() {
-        return "DELETE FROM Visit WHERE patientid=?";
+        return "DELETE FROM Visit WHERE visitid=?";
     }
 
     @Override
@@ -68,7 +72,7 @@ public class Visit extends BaseModel<Visit> {
 
     @Override
     protected String getSelectByIdSQL() {
-        return "SELECT * FROM Visit WHERE patientid=?";
+        return "SELECT * FROM Visit WHERE visitid=?";
     }
 
     @Override
@@ -77,6 +81,9 @@ public class Visit extends BaseModel<Visit> {
     }
 
     // Getters and Setters
+    public String getVisitid() { return visitid; }
+    public void setVisitid(String visitid) { this.visitid = visitid; }
+    
     public String getPatientid() { return patientid; }
     public void setPatientid(String patientid) { this.patientid = patientid; }
     
@@ -95,12 +102,12 @@ public class Visit extends BaseModel<Visit> {
     @Override
     public String toString() {
         String formattedDate = dateofvisit != null ? DATE_FORMAT.format(dateofvisit) : "N/A";
-        return String.format("Visit{patientid='%s', doctorid='%s', dateofvisit='%s', symptoms='%s', diagnosis='%s'}", 
-                patientid, doctorid, formattedDate, symptoms, diagnosis);
+        return String.format("Visit{visitid='%s', patientid='%s', doctorid='%s', dateofvisit='%s', symptoms='%s', diagnosis='%s'}", 
+                visitid, patientid, doctorid, formattedDate, symptoms, diagnosis);
     }
 
     @Override
     protected Object getId() {
-        return patientid;
+        return visitid;
     }
 } 
