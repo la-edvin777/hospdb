@@ -1,17 +1,37 @@
 package gui;
 
-import models.*;
-import utils.DatabaseConfig;
-import utils.CSVLoader;
-import utils.DatabaseInitializer;
-
-import javax.swing.*;
-import java.awt.*;
+import java.awt.BorderLayout;
+import java.awt.Component;
 import java.sql.Connection;
 import java.sql.SQLException;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import javax.swing.JButton;
+import javax.swing.JFrame;
+import javax.swing.JMenu;
+import javax.swing.JMenuBar;
+import javax.swing.JMenuItem;
+import javax.swing.JOptionPane;
+import javax.swing.JPanel;
+import javax.swing.JScrollPane;
+import javax.swing.JTabbedPane;
+import javax.swing.JTable;
+import javax.swing.SwingUtilities;
+import javax.swing.table.DefaultTableModel;
+
+import models.Doctor;
+import models.DoctorSpecialty;
+import models.Insurance;
+import models.PatientExtendedView;
+import models.PatientInsurance;
+import models.Prescription;
+import models.Visit;
+import utils.CSVLoader;
+import utils.DatabaseConfig;
+import utils.DatabaseInitializer;
 
 public class HospitalManagementGUI extends JFrame {
     private final Connection connection;
@@ -122,17 +142,81 @@ public class HospitalManagementGUI extends JFrame {
         fields.put("email", new FieldMetadata(String.class));
         fields.put("address", new FieldMetadata(String.class));
         fields.put("postcode", new FieldMetadata(String.class));
-        fields.put("insuranceid", new FieldMetadata(String.class, "patientinsurance", "insuranceid", "insuranceid"));
+        fields.put("insuranceCompany", new FieldMetadata(String.class));
+        fields.put("mainDoctorName", new FieldMetadata(String.class));
         
-        DatabaseTablePanel<Patient> panel = new DatabaseTablePanel<>(
-            connection,
-            new Patient(),
-            "patient",
-            fields,
-            Patient::new
-        );
+        JPanel patientPanel = new JPanel(new BorderLayout());
         
-        tabbedPane.addTab("Patients", panel);
+        try {
+            List<PatientExtendedView> patients = PatientExtendedView.getAllWithExtendedInfo(connection);
+            
+            DefaultTableModel tableModel = new DefaultTableModel();
+            
+            String[] columnNames = {"Patient ID", "First Name", "Last Name", "Phone", "Email", 
+                                   "Address", "Postcode", "Insurance Company", "Main Doctor"};
+            for (String columnName : columnNames) {
+                tableModel.addColumn(columnName);
+            }
+            
+            for (PatientExtendedView patient : patients) {
+                tableModel.addRow(new Object[]{
+                    patient.getPatientid(),
+                    patient.getFirstname(),
+                    patient.getSurname(),
+                    patient.getPhone(),
+                    patient.getEmail(),
+                    patient.getAddress(),
+                    patient.getPostcode(),
+                    patient.getInsuranceCompany(),
+                    patient.getMainDoctorName()
+                });
+            }
+            
+            JTable table = new JTable(tableModel);
+            JScrollPane scrollPane = new JScrollPane(table);
+            patientPanel.add(scrollPane, BorderLayout.CENTER);
+            
+            JButton refreshButton = new JButton("Refresh");
+            refreshButton.addActionListener(e -> {
+                try {
+                    List<PatientExtendedView> refreshedPatients = PatientExtendedView.getAllWithExtendedInfo(connection);
+                    DefaultTableModel model = (DefaultTableModel) table.getModel();
+                    model.setRowCount(0);
+                    
+                    for (PatientExtendedView patient : refreshedPatients) {
+                        model.addRow(new Object[]{
+                            patient.getPatientid(),
+                            patient.getFirstname(),
+                            patient.getSurname(),
+                            patient.getPhone(),
+                            patient.getEmail(),
+                            patient.getAddress(),
+                            patient.getPostcode(),
+                            patient.getInsuranceCompany(),
+                            patient.getMainDoctorName()
+                        });
+                    }
+                } catch (SQLException ex) {
+                    ex.printStackTrace();
+                    JOptionPane.showMessageDialog(this, 
+                        "Error refreshing patient data: " + ex.getMessage(),
+                        "Database Error", JOptionPane.ERROR_MESSAGE);
+                }
+            });
+            
+            JPanel buttonPanel = new JPanel();
+            buttonPanel.add(refreshButton);
+            patientPanel.add(buttonPanel, BorderLayout.SOUTH);
+            
+        } catch (SQLException e) {
+            e.printStackTrace();
+            JOptionPane.showMessageDialog(this, 
+                "Error loading patient data: " + e.getMessage(),
+                "Database Error", JOptionPane.ERROR_MESSAGE);
+            patientPanel = new JPanel();
+        }
+        
+        tabbedPane.addTab("Patients", patientPanel);
     }
     
     private void setupVisitPanel() {
