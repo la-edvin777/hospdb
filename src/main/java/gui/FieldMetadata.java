@@ -10,16 +10,18 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.UUID;
-import javax.swing.*;
-import java.util.Date;
-import java.text.SimpleDateFormat;
-import java.util.Properties;
-import javax.swing.text.MaskFormatter;
 import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
 import java.util.Locale;
+import java.util.UUID;
+
+import javax.swing.JComponent;
+import javax.swing.JFormattedTextField;
+import javax.swing.JTextField;
+import javax.swing.text.MaskFormatter;
 
 public class FieldMetadata {
     private final Class<?> type;
@@ -178,18 +180,38 @@ public class FieldMetadata {
         }
         
         List<ComboBoxItem> items = new ArrayList<>();
-        String sql = String.format("SELECT %s, %s FROM %s", 
-            foreignKeyColumn, displayColumn, foreignKeyTable);
+        String sql;
+        
+        // Handle special cases where displayColumn contains a function
+        if (displayColumn.toUpperCase().startsWith("CONCAT(")) {
+            sql = String.format("SELECT %s, %s AS display_name FROM %s", 
+                foreignKeyColumn, displayColumn, foreignKeyTable);
             
-        try (PreparedStatement stmt = conn.prepareStatement(sql);
-             ResultSet rs = stmt.executeQuery()) {
-            while (rs.next()) {
-                items.add(new ComboBoxItem(
-                    rs.getString(foreignKeyColumn),
-                    rs.getString(displayColumn)
-                ));
+            try (PreparedStatement stmt = conn.prepareStatement(sql);
+                 ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) {
+                    items.add(new ComboBoxItem(
+                        rs.getString(foreignKeyColumn),
+                        rs.getString("display_name")
+                    ));
+                }
+            }
+        } else {
+            // Handle regular columns
+            sql = String.format("SELECT %s, %s FROM %s", 
+                foreignKeyColumn, displayColumn, foreignKeyTable);
+                
+            try (PreparedStatement stmt = conn.prepareStatement(sql);
+                 ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) {
+                    items.add(new ComboBoxItem(
+                        rs.getString(foreignKeyColumn),
+                        rs.getString(displayColumn)
+                    ));
+                }
             }
         }
+        
         return items;
     }
 

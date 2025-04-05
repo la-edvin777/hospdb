@@ -1,22 +1,40 @@
 package gui;
 
-import models.BaseModel;
-import javax.swing.*;
-import javax.swing.table.DefaultTableModel;
-import javax.swing.table.TableRowSorter;
-import java.awt.*;
-import java.sql.*;
+import java.awt.BorderLayout;
+import java.awt.GridLayout;
+import java.lang.reflect.Method;
+import java.sql.Connection;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Vector;
 import java.util.function.Supplier;
-import java.util.Comparator;
-import java.text.SimpleDateFormat;
-import java.util.Locale;
-import java.util.Date;
-import java.lang.reflect.Method;
-import java.util.HashMap;
-import java.util.ArrayList;
+
+import javax.swing.JButton;
+import javax.swing.JComboBox;
+import javax.swing.JComponent;
+import javax.swing.JDialog;
+import javax.swing.JFrame;
+import javax.swing.JLabel;
+import javax.swing.JOptionPane;
+import javax.swing.JPanel;
+import javax.swing.JScrollPane;
+import javax.swing.JTable;
+import javax.swing.JTextField;
+import javax.swing.RowSorter;
+import javax.swing.SortOrder;
+import javax.swing.SwingUtilities;
+import javax.swing.table.DefaultTableModel;
+import javax.swing.table.TableRowSorter;
+
+import models.BaseModel;
 
 public class DatabaseTablePanel<T extends BaseModel<T>> extends JPanel {
     private final Connection connection;
@@ -190,7 +208,7 @@ public class DatabaseTablePanel<T extends BaseModel<T>> extends JPanel {
                 columnOrder = new String[]{"patientid", "doctorid", "dateofvisit", "symptoms", "diagnosis"};
                 break;
             case "prescription":
-                columnOrder = new String[]{"prescriptionid", "patientid", "doctorid", "drugid", "dateprescribed", "dosage", "duration", "comment"};
+                columnOrder = new String[]{"prescriptionid", "patientid", "doctorid", "doctorName", "drugid", "dateprescribed", "dosage", "duration", "comment"};
                 break;
             case "doctorspecialty":
                 columnOrder = new String[]{"doctorid", "specialty", "experience"};
@@ -215,14 +233,24 @@ public class DatabaseTablePanel<T extends BaseModel<T>> extends JPanel {
             for (String fieldName : columnOrder) {
                 if (fields.containsKey(fieldName)) {
                     try {
-                        Object value = entity.getClass().getMethod("get" + capitalize(fieldName)).invoke(entity);
-                        // Format date values
-                        if (value instanceof Date) {
-                            value = DATE_FORMAT.format(value);
+                        // Check if this is a computed field from a SQL query
+                        FieldMetadata metadata = fields.get(fieldName);
+                        if (metadata.getForeignKeyTable() != null && metadata.getDisplayColumn() != null) {
+                            // This is a computed field from a SQL query, get it directly from the entity
+                            Object value = entity.getClass().getMethod("get" + capitalize(fieldName)).invoke(entity);
+                            row.add(value);
+                        } else {
+                            // This is a regular field from the database
+                            Object value = entity.getClass().getMethod("get" + capitalize(fieldName)).invoke(entity);
+                            // Format date values
+                            if (value instanceof Date) {
+                                value = DATE_FORMAT.format(value);
+                            }
+                            row.add(value);
                         }
-                        row.add(value);
                     } catch (Exception e) {
                         e.printStackTrace();
+                        row.add(null); // Add null for fields that can't be retrieved
                     }
                 }
             }
@@ -506,17 +534,34 @@ public class DatabaseTablePanel<T extends BaseModel<T>> extends JPanel {
      */
     private void loadForeignKeyItems(JComboBox<ComboBoxItem> comboBox, FieldMetadata metadata) {
         try {
-            String sql = String.format("SELECT %s, %s FROM %s",
-                metadata.getForeignKeyColumn(),
-                metadata.getDisplayColumn(),
-                metadata.getForeignKeyTable());
-            
-            try (Statement stmt = connection.createStatement();
-                 ResultSet rs = stmt.executeQuery(sql)) {
-                while (rs.next()) {
-                    String id = rs.getString(1);
-                    String display = rs.getString(2);
-                    comboBox.addItem(new ComboBoxItem(id, display));
+            String sql;
+            if (metadata.getDisplayColumn().toUpperCase().startsWith("CONCAT(")) {
+                sql = String.format("SELECT %s, %s AS display_name FROM %s",
+                    metadata.getForeignKeyColumn(),
+                    metadata.getDisplayColumn(),
+                    metadata.getForeignKeyTable());
+                
+                try (Statement stmt = connection.createStatement();
+                     ResultSet rs = stmt.executeQuery(sql)) {
+                    while (rs.next()) {
+                        String id = rs.getString(1);
+                        String display = rs.getString("display_name");
+                        comboBox.addItem(new ComboBoxItem(id, display));
+                    }
+                }
+            } else {
+                sql = String.format("SELECT %s, %s FROM %s",
+                    metadata.getForeignKeyColumn(),
+                    metadata.getDisplayColumn(),
+                    metadata.getForeignKeyTable());
+                
+                try (Statement stmt = connection.createStatement();
+                     ResultSet rs = stmt.executeQuery(sql)) {
+                    while (rs.next()) {
+                        String id = rs.getString(1);
+                        String display = rs.getString(2);
+                        comboBox.addItem(new ComboBoxItem(id, display));
+                    }
                 }
             }
         } catch (SQLException e) {

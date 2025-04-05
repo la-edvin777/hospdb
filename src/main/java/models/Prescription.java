@@ -1,6 +1,9 @@
 package models;
 
-import java.sql.*;
+import java.sql.Date;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.text.SimpleDateFormat;
 import java.util.Locale;
 
@@ -13,6 +16,7 @@ public class Prescription extends BaseModel<Prescription> {
     private int drugid;
     private String doctorid;
     private String patientid;
+    private String doctorName;
     
     private static final SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("yyyy-MM-dd", Locale.UK);
 
@@ -32,6 +36,15 @@ public class Prescription extends BaseModel<Prescription> {
         prescription.drugid = rs.getInt("drugid");
         prescription.doctorid = rs.getString("doctorid");
         prescription.patientid = rs.getString("patientid");
+        
+        // Set doctorName if it exists in the result set
+        try {
+            prescription.doctorName = rs.getString("doctorName");
+        } catch (SQLException e) {
+            // If doctorName column doesn't exist, it will be null
+            prescription.doctorName = null;
+        }
+        
         return prescription;
     }
 
@@ -76,12 +89,17 @@ public class Prescription extends BaseModel<Prescription> {
 
     @Override
     protected String getSelectAllSQL() {
-        return "SELECT * FROM prescription";
+        return "SELECT p.*, CONCAT(d.firstname, ' ', d.surname) AS doctorName " +
+               "FROM prescription p " +
+               "LEFT JOIN doctor d ON p.doctorid = d.doctorid";
     }
 
     @Override
     protected String getSelectByIdSQL() {
-        return "SELECT * FROM prescription WHERE prescriptionid=?";
+        return "SELECT p.*, CONCAT(d.firstname, ' ', d.surname) AS doctorName " +
+               "FROM prescription p " +
+               "LEFT JOIN doctor d ON p.doctorid = d.doctorid " +
+               "WHERE p.prescriptionid = ?";
     }
 
     @Override
@@ -113,13 +131,16 @@ public class Prescription extends BaseModel<Prescription> {
     
     public String getPatientid() { return patientid; }
     public void setPatientid(String patientid) { this.patientid = patientid; }
+    
+    public String getDoctorName() { return doctorName; }
+    public void setDoctorName(String doctorName) { this.doctorName = doctorName; }
 
     @Override
     public String toString() {
         String formattedDate = dateprescribed != null ? DATE_FORMAT.format(dateprescribed) : "N/A";
         return String.format("Prescription{prescriptionid='%s', dateprescribed='%s', dosage='%s', duration='%s', " +
-                "comment='%s', drugid=%d, doctorid='%s', patientid='%s'}", 
-                prescriptionid, formattedDate, dosage, duration, comment, drugid, doctorid, patientid);
+                "comment='%s', drugid=%d, doctorid='%s', patientid='%s', doctorName='%s'}", 
+                prescriptionid, formattedDate, dosage, duration, comment, drugid, doctorid, patientid, doctorName);
     }
 
     @Override

@@ -241,9 +241,10 @@ public class HospitalManagementGUI extends JFrame {
     private void setupPrescriptionPanel() {
         Map<String, FieldMetadata> fields = new HashMap<>();
         fields.put("prescriptionid", new FieldMetadata(String.class, true));
-        fields.put("patientid", new FieldMetadata(String.class, "patient", "patientid", "firstname || ' ' || surname"));
-        fields.put("doctorid", new FieldMetadata(String.class, "doctor", "doctorid", "firstname || ' ' || surname"));
-        fields.put("drugid", new FieldMetadata(Integer.class));
+        fields.put("patientid", new FieldMetadata(String.class, "patient", "patientid", "CONCAT(firstname, ' ', surname)"));
+        fields.put("doctorid", new FieldMetadata(String.class, "doctor", "doctorid", "CONCAT(firstname, ' ', surname)"));
+        fields.put("doctorName", new FieldMetadata(String.class, "doctor", "doctorid", "CONCAT(firstname, ' ', surname)"));
+        fields.put("drugid", new FieldMetadata(Integer.class, "drug", "drugid", "name"));
         fields.put("dateprescribed", new FieldMetadata(Date.class));
         fields.put("dosage", new FieldMetadata(String.class));
         fields.put("duration", new FieldMetadata(String.class));
