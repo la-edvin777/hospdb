@@ -244,9 +244,9 @@ public class CSVLoader {
             } catch (SQLException ex) {
                 // Ignore
             }
-            throw new SQLException("Error loading " + tableName + ": " + e.getMessage(), e);
+            throw new SQLException("Failed to load data for " + tableName + ". The file format may be incorrect or the data may be invalid.", e);
         } catch (java.io.IOException e) {
-            throw new SQLException("Error reading CSV file: " + e.getMessage(), e);
+            throw new SQLException("Could not read the data file for " + tableName + ". Please check that the file exists and is readable.", e);
         }
     }
     
@@ -314,7 +314,7 @@ public class CSVLoader {
                 System.out.println("Successfully loaded " + tableName + " data using INSERT");
             } catch (SQLException e) {
                 System.err.println("Error loading " + tableName + " data: " + e.getMessage());
-                throw e; // Re-throw to handle in the GUI
+                throw new SQLException("Could not load " + tableName + " data into the database. Some records may contain invalid or duplicate information.", e);
             }
         }
     }

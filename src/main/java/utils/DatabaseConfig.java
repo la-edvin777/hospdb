@@ -117,7 +117,6 @@ public class DatabaseConfig {
     public static Connection getConnection() throws SQLException {
         System.out.println("Attempting to connect to database with application user: " + APP_USERNAME);
         
-        // Use a completely different approach to connect
         Properties props = getProperties();
         
         try {
@@ -139,7 +138,7 @@ public class DatabaseConfig {
             } else {
                 // For any other error, throw the exception
                 System.err.println("Database connection error: " + e.getMessage());
-                throw e;
+                throw new SQLException("Unable to connect to the database. Please check that the MySQL server is running and accessible.", e);
             }
         }
     }
@@ -204,13 +203,13 @@ public class DatabaseConfig {
                     System.out.println("User password updated and privileges granted");
                 } catch (SQLException innerEx) {
                     System.err.println("Failed to update user: " + innerEx.getMessage());
-                    throw innerEx; // Propagate the error
+                    throw new SQLException("Failed to update database user privileges. You may need to check your MySQL server configuration.", innerEx);
                 }
             }
         } catch (SQLException e) {
             System.err.println("Admin connection failed: " + e.getMessage());
             e.printStackTrace();
-            throw e;
+            throw new SQLException("Could not connect to the MySQL server with admin credentials. Please check that your MySQL server is properly configured and running.", e);
         }
     }
 } 

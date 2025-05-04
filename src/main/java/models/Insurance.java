@@ -37,13 +37,13 @@ public class Insurance extends BaseModel<Insurance> {
 
     @Override
     protected String getTableName() {
-        return "Insurance";
+        return "insurance";
     }
 
     @Override
     protected Insurance mapResultSetToEntity(ResultSet rs) throws SQLException {
         return new Insurance(
-            rs.getString("insuranceID"),
+            rs.getString("insuranceid"),
             rs.getString("company"),
             rs.getString("address"),
             rs.getString("phone")
@@ -68,27 +68,27 @@ public class Insurance extends BaseModel<Insurance> {
 
     @Override
     protected String getCreateSQL() {
-        return "INSERT INTO Insurance (insuranceID, company, address, phone) VALUES (?, ?, ?, ?)";
+        return "INSERT INTO insurance (insuranceid, company, address, phone) VALUES (?, ?, ?, ?)";
     }
 
     @Override
     protected String getUpdateSQL() {
-        return "UPDATE Insurance SET company = ?, address = ?, phone = ? WHERE insuranceID = ?";
+        return "UPDATE insurance SET company = ?, address = ?, phone = ? WHERE insuranceid = ?";
     }
 
     @Override
     protected String getDeleteSQL() {
-        return "DELETE FROM Insurance WHERE insuranceID = ?";
+        return "DELETE FROM insurance WHERE insuranceid = ?";
     }
 
     @Override
     protected String getSelectAllSQL() {
-        return "SELECT * FROM Insurance";
+        return "SELECT * FROM insurance";
     }
 
     @Override
     protected String getSelectByIdSQL() {
-        return "SELECT * FROM Insurance WHERE insuranceID = ?";
+        return "SELECT * FROM insurance WHERE insuranceid = ?";
     }
 
     @Override

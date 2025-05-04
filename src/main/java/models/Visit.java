@@ -15,7 +15,7 @@ public class Visit extends BaseModel<Visit> {
 
     @Override
     protected String getTableName() {
-        return "Visit";
+        return "visit";
     }
 
     @Override
@@ -52,27 +52,27 @@ public class Visit extends BaseModel<Visit> {
 
     @Override
     protected String getCreateSQL() {
-        return "INSERT INTO Visit (visitid, patientid, doctorid, dateofvisit, symptoms, diagnosis) VALUES (?, ?, ?, ?, ?, ?)";
+        return "INSERT INTO visit (visitid, patientid, doctorid, dateofvisit, symptoms, diagnosis) VALUES (?, ?, ?, ?, ?, ?)";
     }
 
     @Override
     protected String getUpdateSQL() {
-        return "UPDATE Visit SET patientid=?, doctorid=?, dateofvisit=?, symptoms=?, diagnosis=? WHERE visitid=?";
+        return "UPDATE visit SET patientid=?, doctorid=?, dateofvisit=?, symptoms=?, diagnosis=? WHERE visitid=?";
     }
 
     @Override
     protected String getDeleteSQL() {
-        return "DELETE FROM Visit WHERE visitid=?";
+        return "DELETE FROM visit WHERE visitid=?";
     }
 
     @Override
     protected String getSelectAllSQL() {
-        return "SELECT * FROM Visit";
+        return "SELECT * FROM visit";
     }
 
     @Override
     protected String getSelectByIdSQL() {
-        return "SELECT * FROM Visit WHERE visitid=?";
+        return "SELECT * FROM visit WHERE visitid=?";
     }
 
     @Override

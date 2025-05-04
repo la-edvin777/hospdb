@@ -176,7 +176,10 @@ public class DatabaseTablePanel<T extends BaseModel<T>> extends JPanel {
                 selectedEntity.delete(connection);
                 refreshTable();
             } catch (SQLException e) {
-                JOptionPane.showMessageDialog(this, "Error deleting record: " + e.getMessage());
+                JOptionPane.showMessageDialog(this, 
+                    "Unable to delete this record. It may be referenced by other data in the system.",
+                    "Delete Failed",
+                    JOptionPane.ERROR_MESSAGE);
             }
         }
     }
@@ -186,7 +189,10 @@ public class DatabaseTablePanel<T extends BaseModel<T>> extends JPanel {
             List<T> entities = entity.selectAll(connection);
             updateTableModel(entities);
         } catch (SQLException e) {
-            JOptionPane.showMessageDialog(this, "Error refreshing table: " + e.getMessage());
+            JOptionPane.showMessageDialog(this, 
+                "Unable to load the latest data from the database. Please try again later.",
+                "Data Refresh Failed",
+                JOptionPane.ERROR_MESSAGE);
         }
     }
 
@@ -325,7 +331,19 @@ public class DatabaseTablePanel<T extends BaseModel<T>> extends JPanel {
             entity.create(connection);
             refreshTable();
         } catch (SQLException e) {
-            JOptionPane.showMessageDialog(this, "Error saving record: " + e.getMessage());
+            String message = "Unable to save the new record. ";
+            
+            if (e.getMessage().contains("Duplicate")) {
+                message += "A record with this ID already exists.";
+            } else if (e.getMessage().contains("foreign key")) {
+                message += "One of the referenced values does not exist.";
+            } else if (e.getMessage().contains("cannot be null")) {
+                message += "Required fields cannot be empty.";
+            } else {
+                message += "Please check the data and try again.";
+            }
+            
+            JOptionPane.showMessageDialog(this, message, "Save Failed", JOptionPane.ERROR_MESSAGE);
         }
     }
 
@@ -334,7 +352,17 @@ public class DatabaseTablePanel<T extends BaseModel<T>> extends JPanel {
             entity.update(connection);
             refreshTable();
         } catch (SQLException e) {
-            JOptionPane.showMessageDialog(this, "Error updating record: " + e.getMessage());
+            String message = "Unable to update this record. ";
+            
+            if (e.getMessage().contains("foreign key")) {
+                message += "One of the referenced values does not exist.";
+            } else if (e.getMessage().contains("cannot be null")) {
+                message += "Required fields cannot be empty.";
+            } else {
+                message += "Please check the data and try again.";
+            }
+            
+            JOptionPane.showMessageDialog(this, message, "Update Failed", JOptionPane.ERROR_MESSAGE);
         }
     }
 
@@ -567,8 +595,8 @@ public class DatabaseTablePanel<T extends BaseModel<T>> extends JPanel {
         } catch (SQLException e) {
             e.printStackTrace();
             JOptionPane.showMessageDialog(this,
-                "Error loading foreign key data: " + e.getMessage(),
-                "Database Error",
+                "Unable to load reference data. Some dropdown options may be missing.",
+                "Data Loading Error",
                 JOptionPane.ERROR_MESSAGE);
         }
     }

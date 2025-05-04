@@ -69,8 +69,8 @@ public class HospitalManagementGUI extends JFrame {
         } catch (SQLException e) {
             e.printStackTrace();
             JOptionPane.showMessageDialog(null,
-                "Error initializing application: " + e.getMessage(),
-                "Database Error",
+                "The application could not connect to the database. Please check your database settings and try again.",
+                "Connection Error",
                 JOptionPane.ERROR_MESSAGE);
             throw e;  // Re-throw to allow main method to handle it
         }
@@ -89,15 +89,15 @@ public class HospitalManagementGUI extends JFrame {
                 } catch (SQLException e2) {
                     e2.printStackTrace();
                     JOptionPane.showMessageDialog(this, 
-                        "Error loading data: " + e2.getMessage(),
-                        "Database Error",
+                        "Unable to load initial data into the database. The application may not function correctly.",
+                        "Data Loading Error",
                         JOptionPane.ERROR_MESSAGE);
                 }
             } else {
                 e.printStackTrace();
                 JOptionPane.showMessageDialog(this, 
-                    "Error loading data: " + e.getMessage(),
-                    "Database Error",
+                    "Unable to load initial data into the database. The application may not function correctly.",
+                    "Data Loading Error",
                     JOptionPane.ERROR_MESSAGE);
             }
         }
@@ -199,8 +199,9 @@ public class HospitalManagementGUI extends JFrame {
                 } catch (SQLException ex) {
                     ex.printStackTrace();
                     JOptionPane.showMessageDialog(this, 
-                        "Error refreshing patient data: " + ex.getMessage(),
-                        "Database Error", JOptionPane.ERROR_MESSAGE);
+                        "Unable to refresh the patient information. Please try again later.",
+                        "Data Refresh Error", 
+                        JOptionPane.ERROR_MESSAGE);
                 }
             });
             
@@ -211,8 +212,9 @@ public class HospitalManagementGUI extends JFrame {
         } catch (SQLException e) {
             e.printStackTrace();
             JOptionPane.showMessageDialog(this, 
-                "Error loading patient data: " + e.getMessage(),
-                "Database Error", JOptionPane.ERROR_MESSAGE);
+                "Unable to load patient information. The patient tab will be unavailable.",
+                "Data Loading Error", 
+                JOptionPane.ERROR_MESSAGE);
             patientPanel = new JPanel();
         }
         
@@ -356,8 +358,8 @@ public class HospitalManagementGUI extends JFrame {
                     ex.printStackTrace();
                     JOptionPane.showMessageDialog(
                         this,
-                        "Error reinitializing database: " + ex.getMessage(),
-                        "Database Error",
+                        "Unable to reset the database. Please check your connection and try again.",
+                        "Reset Failed",
                         JOptionPane.ERROR_MESSAGE
                     );
                 }
@@ -386,8 +388,8 @@ public class HospitalManagementGUI extends JFrame {
             } catch (SQLException e) {
                 e.printStackTrace();
                 JOptionPane.showMessageDialog(null,
-                    "Error starting application: " + e.getMessage(),
-                    "Application Error",
+                    "The application could not start due to a database connection issue. Please check your database settings.",
+                    "Startup Error",
                     JOptionPane.ERROR_MESSAGE);
                 System.exit(1);
             }
