@@ -144,7 +144,10 @@ public class DatabaseTablePanel<T extends BaseModel<T>> extends JPanel {
     private void showEditDialog() {
         int selectedRow = table.getSelectedRow();
         if (selectedRow == -1) {
-            JOptionPane.showMessageDialog(this, "Please select a record to edit");
+            JOptionPane.showMessageDialog(this, 
+                "Please select a record to edit",
+                "No Selection",
+                JOptionPane.INFORMATION_MESSAGE);
             return;
         }
 
@@ -159,7 +162,10 @@ public class DatabaseTablePanel<T extends BaseModel<T>> extends JPanel {
     private void deleteSelected() {
         int selectedRow = table.getSelectedRow();
         if (selectedRow == -1) {
-            JOptionPane.showMessageDialog(this, "Please select a record to delete");
+            JOptionPane.showMessageDialog(this, 
+                "Please select a record to delete",
+                "No Selection",
+                JOptionPane.INFORMATION_MESSAGE);
             return;
         }
 
@@ -176,8 +182,16 @@ public class DatabaseTablePanel<T extends BaseModel<T>> extends JPanel {
                 selectedEntity.delete(connection);
                 refreshTable();
             } catch (SQLException e) {
+                String message = "Unable to delete this record. ";
+                if (e.getMessage().toLowerCase().contains("foreign key")) {
+                    message += "This record is referenced by other data in the system and cannot be deleted.";
+                } else if (e.getMessage().toLowerCase().contains("access denied")) {
+                    message += "You don't have permission to delete records.";
+                } else {
+                    message += "Please try again later.";
+                }
                 JOptionPane.showMessageDialog(this, 
-                    "Unable to delete this record. It may be referenced by other data in the system.",
+                    message,
                     "Delete Failed",
                     JOptionPane.ERROR_MESSAGE);
             }
@@ -189,8 +203,18 @@ public class DatabaseTablePanel<T extends BaseModel<T>> extends JPanel {
             List<T> entities = entity.selectAll(connection);
             updateTableModel(entities);
         } catch (SQLException e) {
+            String message = "Unable to load data from " + tableName + ". ";
+            if (e.getMessage().toLowerCase().contains("table") && e.getMessage().toLowerCase().contains("doesn't exist")) {
+                message += "The table does not exist in the database.";
+            } else if (e.getMessage().toLowerCase().contains("access denied")) {
+                message += "You don't have permission to view this data.";
+            } else if (e.getMessage().toLowerCase().contains("connection")) {
+                message += "Cannot connect to the database. Please check your connection.";
+            } else {
+                message += "Please try again later.";
+            }
             JOptionPane.showMessageDialog(this, 
-                "Unable to load the latest data from the database. Please try again later.",
+                message,
                 "Data Refresh Failed",
                 JOptionPane.ERROR_MESSAGE);
         }
@@ -332,17 +356,19 @@ public class DatabaseTablePanel<T extends BaseModel<T>> extends JPanel {
             refreshTable();
         } catch (SQLException e) {
             String message = "Unable to save the new record. ";
-            
-            if (e.getMessage().contains("Duplicate")) {
-                message += "A record with this ID already exists.";
-            } else if (e.getMessage().contains("foreign key")) {
-                message += "One of the referenced values does not exist.";
-            } else if (e.getMessage().contains("cannot be null")) {
-                message += "Required fields cannot be empty.";
+            if (e.getMessage().toLowerCase().contains("duplicate")) {
+                message += "A record with this ID already exists. Please use a unique ID.";
+            } else if (e.getMessage().toLowerCase().contains("foreign key")) {
+                message += "One of the referenced values does not exist. Please check dropdown selections or referenced IDs.";
+            } else if (e.getMessage().toLowerCase().contains("cannot be null") || e.getMessage().toLowerCase().contains("null not allowed")) {
+                message += "Required fields cannot be empty. Please fill in all fields marked with *.";
+            } else if (e.getMessage().toLowerCase().contains("data truncated") || e.getMessage().toLowerCase().contains("incorrect")) {
+                message += "Some fields have invalid data. Please check your input (e.g., date format, numbers).";
             } else {
-                message += "Please check the data and try again.";
+                message += e.getMessage();
             }
-            
+            // Log stack trace for debugging, but don't show to user
+            e.printStackTrace();
             JOptionPane.showMessageDialog(this, message, "Save Failed", JOptionPane.ERROR_MESSAGE);
         }
     }
@@ -353,15 +379,16 @@ public class DatabaseTablePanel<T extends BaseModel<T>> extends JPanel {
             refreshTable();
         } catch (SQLException e) {
             String message = "Unable to update this record. ";
-            
-            if (e.getMessage().contains("foreign key")) {
-                message += "One of the referenced values does not exist.";
-            } else if (e.getMessage().contains("cannot be null")) {
-                message += "Required fields cannot be empty.";
+            if (e.getMessage().toLowerCase().contains("foreign key")) {
+                message += "One of the referenced values does not exist. Please check dropdown selections or referenced IDs.";
+            } else if (e.getMessage().toLowerCase().contains("cannot be null") || e.getMessage().toLowerCase().contains("null not allowed")) {
+                message += "Required fields cannot be empty. Please fill in all fields marked with *.";
+            } else if (e.getMessage().toLowerCase().contains("data truncated") || e.getMessage().toLowerCase().contains("incorrect")) {
+                message += "Some fields have invalid data. Please check your input (e.g., date format, numbers).";
             } else {
-                message += "Please check the data and try again.";
+                message += e.getMessage();
             }
-            
+            e.printStackTrace();
             JOptionPane.showMessageDialog(this, message, "Update Failed", JOptionPane.ERROR_MESSAGE);
         }
     }
@@ -389,6 +416,7 @@ public class DatabaseTablePanel<T extends BaseModel<T>> extends JPanel {
             if (metadata.getForeignKeyTable() != null) {
                 // Create combobox for foreign key fields
                 JComboBox<ComboBoxItem> comboBox = new JComboBox<>();
+                comboBox.addItem(new ComboBoxItem("", "-- Select " + fieldName + " --")); // Add default empty option
                 loadForeignKeyItems(comboBox, metadata);
                 input = comboBox;
                 
@@ -433,7 +461,12 @@ public class DatabaseTablePanel<T extends BaseModel<T>> extends JPanel {
                             Method setter = newEntity.getClass().getMethod(setterName, String.class);
                             setter.invoke(newEntity, generatedId);
                         } catch (Exception e) {
-                            e.printStackTrace();
+                            JOptionPane.showMessageDialog(dialog,
+                                "Error generating ID for " + fieldName + ". Please try again.",
+                                "ID Generation Error",
+                                JOptionPane.ERROR_MESSAGE);
+                            dialog.dispose();
+                            return;
                         }
                     }
                 }
@@ -461,11 +494,11 @@ public class DatabaseTablePanel<T extends BaseModel<T>> extends JPanel {
         
         saveButton.addActionListener(e -> {
             try {
-                // Use the already created entity for new records
                 T entityToSave = isNew ? newEntity : entity;
-                
-                // Validate required fields
                 StringBuilder missingFields = new StringBuilder();
+                StringBuilder invalidFields = new StringBuilder();
+                
+                // Validate all fields
                 for (String fieldName : fields.keySet()) {
                     FieldMetadata metadata = fields.get(fieldName);
                     JComponent input = inputFields.get(fieldName);
@@ -478,51 +511,101 @@ public class DatabaseTablePanel<T extends BaseModel<T>> extends JPanel {
                         value = selected != null ? selected.getId() : null;
                     }
                     
+                    // Check required fields
                     if (metadata.isRequired() && (value == null || value.isEmpty())) {
                         if (missingFields.length() > 0) missingFields.append(", ");
                         missingFields.append(fieldName);
+                        continue;
                     }
                     
-                    if (value != null && !value.isEmpty()) {
+                    // Skip validation for empty non-required fields
+                    if (value == null || value.isEmpty()) {
+                        continue;
+                    }
+                    
+                    // Validate field value
+                    try {
                         String setterName = "set" + fieldName.substring(0, 1).toUpperCase() + fieldName.substring(1);
                         Method setter = entityToSave.getClass().getMethod(setterName, fields.get(fieldName).getType());
                         
                         if (fields.get(fieldName).getType() == Date.class) {
                             try {
-                                SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd");
+                                java.text.SimpleDateFormat format = new java.text.SimpleDateFormat("yyyy-MM-dd");
+                                format.setLenient(false); // Strict date parsing
                                 java.util.Date parsedDate = format.parse(value);
                                 setter.invoke(entityToSave, new java.sql.Date(parsedDate.getTime()));
                             } catch (java.text.ParseException pe) {
-                                throw new Exception("Invalid date format for " + fieldName + ". Please use YYYY-MM-DD format.");
+                                if (invalidFields.length() > 0) invalidFields.append(", ");
+                                invalidFields.append(fieldName + " (invalid date format)");
                             }
                         } else if (fields.get(fieldName).getType() == Integer.class || fields.get(fieldName).getType() == int.class) {
-                            setter.invoke(entityToSave, Integer.parseInt(value));
+                            try {
+                                int intValue = Integer.parseInt(value);
+                                if (intValue < 0) {
+                                    if (invalidFields.length() > 0) invalidFields.append(", ");
+                                    invalidFields.append(fieldName + " (must be positive)");
+                                } else {
+                                    setter.invoke(entityToSave, intValue);
+                                }
+                            } catch (NumberFormatException nfe) {
+                                if (invalidFields.length() > 0) invalidFields.append(", ");
+                                invalidFields.append(fieldName + " (must be a number)");
+                            }
                         } else {
-                            setter.invoke(entityToSave, value);
+                            // Validate string length if specified
+                            if (metadata.getMaxLength() > 0 && value.length() > metadata.getMaxLength()) {
+                                if (invalidFields.length() > 0) invalidFields.append(", ");
+                                invalidFields.append(fieldName + " (too long)");
+                            } else {
+                                setter.invoke(entityToSave, value);
+                            }
                         }
+                    } catch (Exception ex) {
+                        if (invalidFields.length() > 0) invalidFields.append(", ");
+                        invalidFields.append(fieldName + " (invalid format)");
                     }
                 }
                 
-                // Check if any required fields are missing
-                if (missingFields.length() > 0) {
-                    throw new Exception("Required fields missing: " + missingFields.toString());
+                // Check for validation errors
+                if (missingFields.length() > 0 || invalidFields.length() > 0) {
+                    StringBuilder errorMessage = new StringBuilder();
+                    if (missingFields.length() > 0) {
+                        errorMessage.append("Required fields missing: ").append(missingFields.toString());
+                    }
+                    if (invalidFields.length() > 0) {
+                        if (errorMessage.length() > 0) errorMessage.append("\n\n");
+                        errorMessage.append("Invalid fields: ").append(invalidFields.toString());
+                    }
+                    throw new Exception(errorMessage.toString());
                 }
                 
+                // Save the entity
                 if (isNew) {
                     entityToSave.create(connection);
                 } else {
                     entityToSave.update(connection);
                 }
-                
                 refreshTable();
                 dialog.dispose();
                 
+            } catch (SQLException ex) {
+                String message = "Unable to save the record. ";
+                if (ex.getMessage().toLowerCase().contains("duplicate")) {
+                    message += "A record with this ID already exists.";
+                } else if (ex.getMessage().toLowerCase().contains("foreign key")) {
+                    message += "One of the referenced values does not exist.";
+                } else if (ex.getMessage().toLowerCase().contains("cannot be null")) {
+                    message += "Required fields cannot be empty.";
+                } else if (ex.getMessage().toLowerCase().contains("data truncated")) {
+                    message += "Some fields have invalid data.";
+                } else if (ex.getMessage().toLowerCase().contains("access denied")) {
+                    message += "You don't have permission to save records.";
+                } else {
+                    message += "Please check your input and try again.";
+                }
+                JOptionPane.showMessageDialog(dialog, message, "Save Failed", JOptionPane.ERROR_MESSAGE);
             } catch (Exception ex) {
-                ex.printStackTrace();
-                JOptionPane.showMessageDialog(dialog,
-                    "Error saving record: " + ex.getMessage(),
-                    "Error",
-                    JOptionPane.ERROR_MESSAGE);
+                JOptionPane.showMessageDialog(dialog, ex.getMessage(), "Validation Error", JOptionPane.ERROR_MESSAGE);
             }
         });
         
@@ -593,11 +676,18 @@ public class DatabaseTablePanel<T extends BaseModel<T>> extends JPanel {
                 }
             }
         } catch (SQLException e) {
+            String message = "Unable to load reference data for " + metadata.getForeignKeyTable() + ". ";
+            if (e.getMessage().toLowerCase().contains("table") && e.getMessage().toLowerCase().contains("doesn't exist")) {
+                message += "The reference table does not exist in the database.";
+            } else if (e.getMessage().toLowerCase().contains("column") && e.getMessage().toLowerCase().contains("doesn't exist")) {
+                message += "One or more columns are missing in the reference table.";
+            } else if (e.getMessage().toLowerCase().contains("access denied")) {
+                message += "Database access denied. Please check your database permissions.";
+            } else {
+                message += "Please check your database connection and try again.";
+            }
             e.printStackTrace();
-            JOptionPane.showMessageDialog(this,
-                "Unable to load reference data. Some dropdown options may be missing.",
-                "Data Loading Error",
-                JOptionPane.ERROR_MESSAGE);
+            JOptionPane.showMessageDialog(this, message, "Data Loading Error", JOptionPane.ERROR_MESSAGE);
         }
     }
 
@@ -610,7 +700,10 @@ public class DatabaseTablePanel<T extends BaseModel<T>> extends JPanel {
             Method getter = entity.getClass().getMethod(getterName);
             return getter.invoke(entity);
         } catch (Exception e) {
-            e.printStackTrace();
+            JOptionPane.showMessageDialog(this,
+                "Unable to read field '" + fieldName + "'. Please try again.",
+                "Data Error",
+                JOptionPane.ERROR_MESSAGE);
             return null;
         }
     }
@@ -627,26 +720,40 @@ public class DatabaseTablePanel<T extends BaseModel<T>> extends JPanel {
             while (rs.next()) {
                 T entity = entityFactory.get();
                 for (String fieldName : fields.keySet()) {
-                    String setterName = "set" + fieldName.substring(0, 1).toUpperCase() + fieldName.substring(1);
-                    Method setter = entity.getClass().getMethod(setterName, fields.get(fieldName).getType());
-                    
-                    Object value;
-                    if (fields.get(fieldName).getType() == Date.class) {
-                        value = rs.getDate(fieldName);
-                    } else if (fields.get(fieldName).getType() == Integer.class || fields.get(fieldName).getType() == int.class) {
-                        value = rs.getInt(fieldName);
-                    } else {
-                        value = rs.getString(fieldName);
-                    }
-                    
-                    if (value != null) {
-                        setter.invoke(entity, value);
+                    try {
+                        String setterName = "set" + fieldName.substring(0, 1).toUpperCase() + fieldName.substring(1);
+                        Method setter = entity.getClass().getMethod(setterName, fields.get(fieldName).getType());
+                        
+                        Object value;
+                        if (fields.get(fieldName).getType() == Date.class) {
+                            value = rs.getDate(fieldName);
+                        } else if (fields.get(fieldName).getType() == Integer.class || fields.get(fieldName).getType() == int.class) {
+                            value = rs.getInt(fieldName);
+                        } else {
+                            value = rs.getString(fieldName);
+                        }
+                        
+                        if (value != null) {
+                            setter.invoke(entity, value);
+                        }
+                    } catch (Exception e) {
+                        throw new SQLException("Error setting field '" + fieldName + "': " + e.getMessage(), e);
                     }
                 }
                 entities.add(entity);
             }
-        } catch (Exception e) {
-            throw new SQLException("Error loading entities: " + e.getMessage(), e);
+        } catch (SQLException e) {
+            String message = "Error loading data from " + tableName + ". ";
+            if (e.getMessage().toLowerCase().contains("table") && e.getMessage().toLowerCase().contains("doesn't exist")) {
+                message += "The table does not exist in the database.";
+            } else if (e.getMessage().toLowerCase().contains("column") && e.getMessage().toLowerCase().contains("doesn't exist")) {
+                message += "One or more columns are missing in the table.";
+            } else if (e.getMessage().toLowerCase().contains("access denied")) {
+                message += "Database access denied. Please check your database permissions.";
+            } else {
+                message += "Please check your database connection and try again.";
+            }
+            throw new SQLException(message, e);
         }
         return entities;
     }
